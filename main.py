@@ -4,13 +4,30 @@ from tkinter import filedialog, messagebox, ttk
 from docx import Document
 import webbrowser
 
+def obtener_todos_los_parrafos(document):
+    
+    parrafos = []
+
+    parrafos.extend(document.paragraphs)
+
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                parrafos.extend(cell.paragraphs)
+    
+    for section in document.sections:
+        parrafos.extend(section.header.paragraphs)
+        parrafos.extend(section.footer.paragraphs)
+
+    return parrafos
+
 # Función para extraer los links (texto visible y URL) de un archivo .docx
 def extraer_links_docx(file_path):
     document = Document(file_path)
     links = []
 
     # Recorre cada parrafo
-    for para in document.paragraphs:
+    for para in obtener_todos_los_parrafos(document):
         para_xml = para._element
 
         hyperlink_elements = para_xml.xpath(".//w:hyperlink")
