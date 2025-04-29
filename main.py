@@ -10,10 +10,19 @@ def obtener_todos_los_parrafos(document):
 
     parrafos.extend(document.paragraphs)
 
+    for i, para in enumerate(parrafos):
+        print(f"Indice {i}: {para.text}")
+        print(para._element.xml)  # Esto muestra el XML interno
+        print("-" * 40)
+
+
+    
     for table in document.tables:
         for row in table.rows:
             for cell in row.cells:
+                
                 parrafos.extend(cell.paragraphs)
+            
     
     for section in document.sections:
         parrafos.extend(section.header.paragraphs)
@@ -26,15 +35,17 @@ def extraer_links_docx(file_path):
     document = Document(file_path)
     links = []
 
-    # Recorre cada parrafo
+    # Recorremos cada parrafo
     for para in obtener_todos_los_parrafos(document):
         para_xml = para._element
+        
 
-        hyperlink_elements = para_xml.xpath(".//w:hyperlink")
-
+        # Caso 1
+        hyperlink_elements = para_xml.xpath(".//w:hyperlink") 
         for hyperlink in hyperlink_elements:
-
+            
             r_id = hyperlink.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id") # Aca obtendriamos el elemento XML, que tiene atributos como "target", en "target" se almacena el URL
+            
 
             if r_id:
                 try:
@@ -43,14 +54,29 @@ def extraer_links_docx(file_path):
                     text_parts = []
                     # En este fragmento obtendriamos el nombre del elemento hyperlink XML
                     for node in hyperlink.xpath(".//w:t"):
-                        text_parts.append(node.text)
+                        if node.text: # Nueva linea
+                            text_parts.append(node.text)
                     texto_visible = ''.join(text_parts)
-
-                    if(texto_visible, url) not in links:
+                    #print(texto_visible)
+                    if texto_visible:
                         links.append((texto_visible, url))
                 except KeyError:
                     continue
-                
+        
+        # Caso 2
+        instr_text_nodes = para_xml.xpath('.//w:instrText')
+        for node in instr_text_nodes:
+            if node.text and 'HYPERLINK' in node.text:
+                # Extrae la URL entre comillas
+                partes = node.text.split('"')
+                if len(partes) >= 2:
+                    url = partes[1]
+                    # Obtener texto visible del párrafo
+                    text_parts = [t.text for t in para_xml.xpath('.//w:t') if t.text]
+                    texto_visible = ''.join(text_parts)
+                    # Verificamos que no esté duplicado
+                    if texto_visible:
+                        links.append((texto_visible, url))        
 
     return links
 
